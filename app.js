@@ -3,6 +3,7 @@ import morgan from "morgan";
 import cors from "cors";
 
 import contactsRouter from "./routes/contactsRouter.js";
+import sequelize from './db/db.js';
 
 const app = express();
 
@@ -21,6 +22,19 @@ app.use((err, req, res, next) => {
   res.status(status).json({ message });
 });
 
-app.listen(3000, () => {
-  console.log("Server is running. Use our API on port: 3000");
+async function initializeDatabase() {
+  try {
+    await sequelize.authenticate();
+    await sequelize.sync();
+    console.log('Database connection successful');
+  } catch (error) {
+    console.error('Database connection error:', error);
+    process.exit(1);
+  }
+}
+
+initializeDatabase().then(() => {
+  app.listen(3000, () => {
+    console.log("Server is running. Use our API on port: 3000");
+  });
 });
