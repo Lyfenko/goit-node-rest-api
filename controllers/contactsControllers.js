@@ -51,3 +51,18 @@ export const updateContact = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateStatusContact = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { favorite } = req.body;
+    if (favorite === undefined) {
+      throw HttpError(400, "Missing field favorite");
+    }
+    const updatedContact = await contactsService.updateStatusContact(id, { favorite });
+    if (!updatedContact) throw HttpError(404, 'Not found');
+    res.json(updatedContact);
+  } catch (error) {
+    next(error);
+  }
+};
