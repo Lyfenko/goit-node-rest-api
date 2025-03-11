@@ -9,6 +9,7 @@ import sequelize from './db/db.js';
 import authRouter from './routes/authRouter.js';
 import User from './models/User.js';
 import Contact from './models/Contact.js';
+import gravatar from "gravatar";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRouter);
 app.use('/api/contacts', contactsRouter);
+app.use(express.static('public'));
 
 app.use((_, res) => {
   res.status(404).json({ message: "Route not found" });
@@ -31,12 +33,18 @@ app.use((err, req, res, next) => {
 async function initializeDatabase() {
   try {
     await sequelize.authenticate();
+    console.log('З\'єднання з базою даних встановлено');
+
+    // Синхронізуємо модель із базою даних
+    await sequelize.sync({ alter: true });
+    console.log('База даних синхронізована');
 
     let defaultUser = await User.findOrCreate({
       where: { email: 'default@example.com' },
       defaults: {
         password: await bcrypt.hash('defaultpassword', 10),
         subscription: 'starter',
+        avatarURL: gravatar.url('default@example.com', { s: '200', r: 'pg', d: 'mm' }, true),
       },
     });
     defaultUser = defaultUser[0];

@@ -1,7 +1,11 @@
 import bcrypt from 'bcrypt';
+import gravatar from 'gravatar';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import HttpError from '../helpers/HttpError.js';
+import fs from 'fs/promises';
+import path from 'path';
+import { nanoid } from 'nanoid';
 
 const { SECRET_KEY } = process.env;
 
@@ -12,9 +16,11 @@ export const register = async (req, res, next) => {
     if (user) throw HttpError(409, 'Email in use');
 
     const hashPassword = await bcrypt.hash(password, 10);
+    const avatarURL = gravatar.url(email, { s: '200', r: 'pg', d: 'mm' }, true);
     const newUser = await User.create({
       email,
       password: hashPassword,
+        avatarURL,
     });
 
     res.status(201).json({
@@ -73,6 +79,25 @@ export const updateSubscription = async (req, res, next) => {
     await User.update({ subscription }, { where: { id } });
     const user = await User.findByPk(id);
     res.json({ email: user.email, subscription: user.subscription });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateAvatar = async (req, res, next) => {
+  try {
+    const { id } = req.user;
+    const { path: tempPath, originalname } = req.file;
+    const avatarDir = path.join(process.cwd(), 'public', 'avatars');
+    const newFilename = `${id}_${nanoid()}${path.extname(originalname)}`;
+    const newPath = path.join(avatarDir, newFilename);
+
+    await fs.rename(tempPath, newPath);
+
+    const avatarURL = `/avatars/${newFilename}`;
+    await User.update({ avatarURL }, { where: { id } });
+
+    res.json({ avatarURL });
   } catch (error) {
     next(error);
   }
